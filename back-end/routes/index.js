@@ -1,17 +1,29 @@
 var express = require('express');
 var router = express.Router();
+var mongoClient = require('mongodb').MongoClient;
+var mongoUrl = 'mongodb://localhost:27017/btb';
 
+var db;
+mongoClient.connect(mongoUrl, function(error, database) {
+    db = database;
+})
+
+router.get('/search', function(req, res, next) {
+    db.collection('students').find({}).toArray(function(error, studentResults) {
+        res.json(studentResults);
+    });
+})
 
 router.post('/search', function(req, res, next) {
-  var name = req.body.name;
-  var dcClass = ['Tristan', 'Josh', 'Keith', 'Bogdan', 'Will', 'Curtis',
-     'Joe', 'Kochan', 'Patrick', 'Jonathan', 'Jeremy'];
+    var studentName = req.body.name;
 
-  if (dcClass.indexOf(name) > -1) {
-       res.json({message: "Hello, " + name + " you are a student"});
-  } else {
-       res.json({message: "You are not in this class"});  //respond with a json object
-}
-
+    db.collection('students').find({ name: studentName }).toArray(function(error, studentResults) {
+        if (studentResults.length === 0) {
+            db.collection('students').insertOne({ name: studentName });
+            res.json("Sorry, there were no results.  Added " + studentName);
+        } else {
+            res.json(studentResults[0].name);
+        }
+    });
 })
 module.exports = router;
